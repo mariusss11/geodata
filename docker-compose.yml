@@ -1,0 +1,159 @@
+name: spring-microservices-library-app
+services:
+  db:
+    container_name: library-microservices-postgres-db
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ./sonar-init:/docker-entrypoint-initdb.d
+    networks:
+      - library-microservices-network
+  pgAdmin4:
+    image: dpage/pgadmin4
+    container_name: my-pgadmin
+    depends_on:
+      - db
+    ports:
+      - "4040:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    volumes:
+      - ./pgadmin4/servers.json:/pgadmin4/servers.json
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - library-microservices-network
+
+  identity-service:
+    image: ghcr.io/mariusss11/identity-service:latest
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+    ports:
+      - "8050:8050"
+    restart: unless-stopped
+    networks:
+      - library-microservices-network
+
+  item-service:
+    container_name: item-service
+    image: ghcr.io/mariusss11/item-service:latest
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+    ports:
+      - "8020:8020"
+    networks:
+      - library-microservices-network
+
+  client-service:
+    container_name: client-service
+    image: ghcr.io/mariusss11/client-service:latest
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+    ports:
+      - "8010:8010"
+    networks:
+      - library-microservices-network
+
+  borrow-service:
+    container_name: borrow-servic
+    image: ghcr.io/mariusss11/borrow-service:latest
+    depends_on:
+      - client-service
+      - item-service
+      - db
+    environment:
+      DB_HOST: db
+    ports:
+      - "8030:8030"
+    networks:
+      - library-microservices-network
+
+  chat-service:
+    image: ghcr.io/mariusss11/chat-service:latest
+    ports:
+      - "8070:8070"
+    restart: unless-stopped
+    depends_on:
+      - item-service
+    networks:
+      - library-microservices-network
+
+  review-service:
+    image: ghcr.io/mariusss11/review-service:latest
+    ports:
+      - "8060:8060"
+    restart: unless-stopped
+    depends_on:
+      - item-service
+      - client-service
+    networks:
+      - library-microservices-network
+  frontend:
+    image: ghcr.io/mariusss11/frontend:latest
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    networks:
+      - library-microservices-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - '2181:2181'
+    networks:
+      - library-microservices-network
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - '9092:9092'
+      - '29092:29092'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - library-microservices-network
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "local"
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka:9092"
+    networks:
+      - library-microservices-network
+
+networks:
+  library-microservices-network:
+    driver: bridge
+
+volumes:
+  pgadmin-data:
+  sonarqube_conf:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonarqube_temp:
+  db:
+  db_data:
+
+

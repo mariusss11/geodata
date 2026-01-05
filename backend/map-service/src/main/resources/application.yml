@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: map-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: "${SUPABASE_DATABASE_USER}"
+    password: "${SUPABASE_DATABASE_PASSWORD}"
+    url: "${SUPABASE_JDBC_URL}"
+  jpa:
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+
+  # to disable the auto config from spring boot
+  # source -> https://stackoverflow.com/questions/30761253/remove-using-default-security-password-on-spring-boot
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+cors:
+  allowed-origins: "${ALLOWED_ORIGINS:http://localhost:80,http://localhost:81,http://localhost:5173}"
+
+logging:
+  level:
+    org.springframework.security: trace
+
+server:
+  port: 8020
+
+services:
+  borrowService: "${BORROW_SERVICE:localhost:8030}"
+
+secretsJwtString: AM3N245B6BHJ43KSDFGHJKLM45N6B7VB7N6M54M5N6B
+
+
+

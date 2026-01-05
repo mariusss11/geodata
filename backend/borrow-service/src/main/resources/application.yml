@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: borrow-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: "${SUPABASE_DATABASE_USER}"
+    password: "${SUPABASE_DATABASE_PASSWORD}"
+    url: "${SUPABASE_JDBC_URL}"
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  flyway:
+    enable: true
+    locations: classpath:db/migration
+    schemas: borrow
+  kafka:
+    bootstrap-servers: "${BOOTSTRAP_SERVERS:localhost:29092}"
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+secretsJwtString: AM3N245B6BHJ43KSDFGHJKLM45N6B7VB7N6M54M5N6B
+
+services:
+  clientService: "${CLIENT_SERVICE:localhost:8010}"
+  itemService: "${ITEM_SERVICE:localhost:8020}"
+
+cors:
+  allowed-origins: "${ALLOWED_ORIGINS:http://localhost:80,http://localhost:81}"
+
+server:
+  port: 8030

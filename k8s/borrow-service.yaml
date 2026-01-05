@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: borrow-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: borrow-service
+  template:
+    metadata:
+      labels:
+        app: borrow-service
+    spec:
+      containers:
+      - name: borrow-service
+        image: ghcr.io/mariusss11/borrow-service:latest
+        ports:
+        - containerPort: 8030
+        env:
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: borrow-service-config
+              key: SPRING_DATASOURCE_URL
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: borrow-service-config
+              key: SPRING_KAFKA_BOOTSTRAP_SERVERS
+        - name: SERVER_PORT
+          valueFrom:  
+            configMapKeyRef:
+              name: borrow-service-config
+              key: SERVER_PORT
+        - name: SERVICES_CLIENTSERVICE
+          valueFrom:
+            configMapKeyRef:
+              name: borrow-service-config
+              key: SERVICES_CLIENTSERVICE
+        - name: SERVICES_ITEMSERVICE
+          valueFrom:
+            configMapKeyRef:
+              name: borrow-service-config
+              key: SERVICES_ITEMSERVICE 
+        
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: borrow-service
+spec:
+  selector:
+    app: borrow-service
+  ports:
+  - protocol: TCP
+    port: 8030
+    targetPort: 8030
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: borrow-service-config
+data:
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres?currentSchema=borrow
+  SPRING_DATASOURCE_USERNAME: postgres
+  SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-service:9092
+  SPRING_FLYWAY_LOCATIONS: classpath:db/migration
+  SPRING_FLYWAY_SCHEMAS: borrow
+  SERVER_PORT: "8030"
+  SERVICES_BORROWSERVICE: borrow-service.default.svc.cluster.local
+  SERVICES_AUTHSERVICE: auth-service.default.svc.cluster.local
+  SERVICES_ITEMSERVICE: item-service.default.svc.cluster.local
+  # ALLOWED_ORIGINS: "*"
+  ALLOWED_ORIGINS: "http://a312ebdfe078b4941b8ca485894409f4-891584174.eu-central-1.elb.amazonaws.com"
+  BORROW_SERVICE: borrow-service
+  AUTH_SERVICE: identity-service
+  ITEM_SERVICE: item-service
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: borrow-service-secret
+type: Opaque
+stringData:
+  SPRING_DATASOURCE_PASSWORD: admin
