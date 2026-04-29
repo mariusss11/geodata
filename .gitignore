@@ -1,0 +1,39 @@
+# Maven build output
+**/target/
+*.jar
+*.war
+*.class
+
+# Node.js
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/.vite/
+
+# IDE - IntelliJ IDEA
+**/.idea/
+*.iml
+*.iws
+*.ipr
+
+# IDE - VS Code
+**/.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+*.env
+.env*
+!.env.example
+
+# IntelliJ database credentials
+**/dataSources.local.xml
+**/dataSources/
+
+# Logs
+*.log
+
+# Build artifacts
+*.local
