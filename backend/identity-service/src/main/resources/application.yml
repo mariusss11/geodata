@@ -6,6 +6,12 @@ spring:
     username: "${SUPABASE_DATABASE_USER}"
     password: "${SUPABASE_DATABASE_PASSWORD}"
     url: "${SUPABASE_JDBC_URL}"
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      idle-timeout: 20000
+      max-lifetime: 300000
+      connection-timeout: 30000
   jpa:
     properties:
       hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -37,4 +43,4 @@ services:
 server:
   port: 8010
 
-secretsJwtString: AM3N245B6BHJ43KSDFGHJKLM45N6B7VB7N6M54M5N6B
+secretsJwtString: "${JWT_SECRET}"

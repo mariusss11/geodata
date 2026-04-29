@@ -30,7 +30,7 @@ server:
 services:
   borrowService: "${BORROW_SERVICE:localhost:8030}"
 
-secretsJwtString: AM3N245B6BHJ43KSDFGHJKLM45N6B7VB7N6M54M5N6B
+secretsJwtString: "${JWT_SECRET}"
 
 
 

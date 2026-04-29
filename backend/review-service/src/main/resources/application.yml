@@ -3,8 +3,8 @@ spring:
     name: review-service
   datasource:
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: admin
+    username: "${DB_USER:postgres}"
+    password: "${DB_PASSWORD}"
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/postgres?currentSchema=review
   jpa:
     hibernate:
@@ -36,4 +36,4 @@ services:
   itemService: "${ITEM_SERVICE:localhost:8020}"
   clientService: "${CLIENT_SERVICE:localhost:8010}"
 
-secretsJwtString: AM3N245B6BHJ43KSDFGHJKLM45N6B7VB7N6M54M5N6B
+secretsJwtString: "${JWT_SECRET}"
