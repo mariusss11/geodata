@@ -19,10 +19,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class BorrowServiceSecurityConfig {
 
-    private final BorrowServiceAuthFilter jwtAuthFilter;
     private static final String ADMIN_ROLE = "ADMIN";
     private static final String LIBRARIAN_ROLE = "LIBRARIAN";
     private static final String USER_ROLE = "USER";
+    private final BorrowServiceAuthFilter jwtAuthFilter;
 
     @Autowired
     public BorrowServiceSecurityConfig(BorrowServiceAuthFilter jwtAuthFilter) {
@@ -40,10 +40,10 @@ public class BorrowServiceSecurityConfig {
                         .requestMatchers(HttpMethod.POST,"/api/borrows/create").hasAuthority(USER_ROLE)
                         .requestMatchers(HttpMethod.POST,"/api/borrows/return").hasAuthority(USER_ROLE)
 
-                        .requestMatchers(HttpMethod.GET,"/api/borrows/**").hasAuthority(USER_ROLE)
+                        .requestMatchers(HttpMethod.GET,"/api/borrows/**").hasAnyAuthority(ADMIN_ROLE, LIBRARIAN_ROLE, USER_ROLE)
+                        .requestMatchers(HttpMethod.GET,"/api/borrows/current").hasAnyAuthority(ADMIN_ROLE, LIBRARIAN_ROLE, USER_ROLE)
 
                         // TODO, double this method, and make one for the client, and one for the admin and librarian
-                        .requestMatchers(HttpMethod.GET,"/api/borrows/current/**").hasAnyAuthority(USER_ROLE, ADMIN_ROLE, LIBRARIAN_ROLE)
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v3/api-docs/**").permitAll()

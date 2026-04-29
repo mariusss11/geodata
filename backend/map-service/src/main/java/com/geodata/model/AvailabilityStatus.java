@@ -16,6 +16,6 @@ public enum AvailabilityStatus {
     ;
 
     public String dbValue() {
-        return this.name().toLowerCase();
+        return this.name().toUpperCase();
     }
 }

@@ -1,6 +1,6 @@
 package com.geodata.utils;
 
-public enum AvailabilityStatus {
+public enum BorrowStatus {
 
     LOST,
 
@@ -12,6 +12,8 @@ public enum AvailabilityStatus {
 
     // Borrowed by a client
     BORROWED,
+
+    TRANSFERRED,
 
     //  Waits for the approval of the librarian, before being borrowed by someone
     PENDING_BORROW_APPROVAL,
@@ -26,6 +28,6 @@ public enum AvailabilityStatus {
     ;
 
     public String dbValue() {
-        return this.name().toLowerCase();
+        return this.name().toUpperCase();
     }
 }

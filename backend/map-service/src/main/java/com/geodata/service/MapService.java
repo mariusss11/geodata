@@ -22,10 +22,9 @@ import java.util.List;
 @Service
 public class MapService {
 
+    private final MapRepository mapRepository;
     @Value("${services.borrowService}")
     private String borrowService;
-
-    private final MapRepository mapRepository;
 
     @Autowired
     public MapService(MapRepository mapRepository) {
@@ -135,16 +134,26 @@ public class MapService {
         return dayDifference <= 30 && createdDate.getYear() == now.getYear();
     }
 
-    public PagedResponse<Map> getAllEnabledItemsPaginated(int pageNumber, int pageSize) {
+    public PagedResponse<Map> getAllEnabledItemsPaginated(int pageNumber, int pageSize, String searchQuery) {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
         Page<Map> itemsPage = mapRepository.findAll(pageable);
         return new PagedResponse<>(itemsPage);
     }
 
-    public PagedResponse<Map> getAllEnabledItemsPaginatedBySearch(Pageable pageable, String query) {
+    public PagedResponse<Map> getAllEnabledItemsPaginatedBySearch(int pageNumber, int pageSize, String query) {
         log.info("In the getAllEnabledItemsPaginatedBySearch method");
-        Page<Map> items = mapRepository.findByIsEnabledTrueAndNameContainingIgnoreCase(query, pageable);
-        return new PagedResponse<>(items);
+
+        Page<Map> page;
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+
+        if (query == null || query.trim().isEmpty()) {
+            page = mapRepository.findAllByIsEnabledTrue(pageable);
+        } else {
+            log.info("the query is: {}", query);
+            page = mapRepository
+                    .findByIsEnabledTrueAndNameContainingIgnoreCase(query, pageable);
+        }
+        return new PagedResponse<>(page);
     }
 
     public MapsStats getMapsStats() {
@@ -159,5 +168,15 @@ public class MapService {
                 .borrowedMaps(borrowedMaps.size())
                 .availableMaps(totalMaps.size() - borrowedMaps.size())
                 .build();
+    }
+
+    public List<Map> getMapsById(List<Integer> mapIds) {
+        if (mapIds == null || mapIds.isEmpty()) {
+            return List.of();
+        }
+
+        return mapRepository.findAllById(mapIds)
+                .stream()
+                .toList();
     }
 }

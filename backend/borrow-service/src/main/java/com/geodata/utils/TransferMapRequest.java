@@ -1,22 +1,18 @@
-package com.geodata.utils.requests;
+package com.geodata.utils;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class BorrowMapRequest {
-
+public class TransferMapRequest {
+    @NotNull
+    private int borrowId;
     @NotNull
     private int mapId;
-
     @NotNull
-    private LocalDate returnDate;
-
+    private int userIdToTransfer;
 }

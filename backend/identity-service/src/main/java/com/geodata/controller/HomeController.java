@@ -21,8 +21,12 @@ public class HomeController {
         this.userService = userService;
     }
 
+    @GetMapping()
+    public ResponseEntity<User> getUserInfo() {
+        return ResponseEntity.ok(userService.getUserInfo());
+    }
 
-    @GetMapping
+    @GetMapping("/whoami")
     public ResponseEntity<Response<User>> whoami() {
         log.info("In the whoami method ");
         return ResponseEntity.ok(userService.whoami());

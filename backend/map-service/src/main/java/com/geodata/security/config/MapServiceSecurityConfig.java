@@ -19,11 +19,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class MapServiceSecurityConfig {
 
-    private final MapServiceAuthFilter jwtAuthFilter;
-
     private static final String ADMIN_ROLE = "ADMIN";
     private static final String MANAGER_ROLE = "MANAGER";
     private static final String USER_ROLE = "USER";
+    private final MapServiceAuthFilter jwtAuthFilter;
 
     @Autowired
     public MapServiceSecurityConfig(MapServiceAuthFilter jwtAuthFilter) {
@@ -41,18 +40,17 @@ public class MapServiceSecurityConfig {
                         // request for managing maps (create)
                         .requestMatchers(HttpMethod.POST, "/api/maps/manager/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE)
 
+                        // request for borrowing
+                        .requestMatchers(HttpMethod.PUT, "/api/maps/setBorrowedToAvailable").hasAuthority(USER_ROLE)
+                        .requestMatchers(HttpMethod.PUT, "/api/maps/setAvailableToBorrowed").hasAuthority(USER_ROLE)
+
                         // request for management
                         .requestMatchers("/api/maps/manager/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE)
 
-                        // request for getting the maps
+                        // request for getting maps / maps info
                         .requestMatchers(HttpMethod.GET, "/api/maps/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE, USER_ROLE)
+                        .requestMatchers(HttpMethod.POST, "/api/maps/batch").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE, USER_ROLE)
 
-
-                        // request for getting all the categories available
-                        .requestMatchers(HttpMethod.GET, "/api/categories/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE, USER_ROLE)
-
-                        // request for adding new categories
-                        .requestMatchers(HttpMethod.POST, "/api/categories/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE)
 
                         // for api-docs
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

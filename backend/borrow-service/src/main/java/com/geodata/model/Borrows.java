@@ -3,6 +3,7 @@ package com.geodata.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,12 +27,10 @@ public class Borrows {
 
     private LocalDateTime borrowDate;
 
-    private LocalDateTime returnDate;
+    private LocalDate returnDate;
 
     private String status;
 
-//    @Column(length = 500)
-//    private String statusReason;
 
     public Borrows(int client, int item, String status) {
         this.userId = client;

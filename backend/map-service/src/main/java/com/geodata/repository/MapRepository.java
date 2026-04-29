@@ -17,6 +17,8 @@ public interface MapRepository extends JpaRepository<Map, Integer> {
 
     List<Map> findAllByIsEnabledTrue();
 
+    Page<Map> findAllByIsEnabledTrue(Pageable pageable);
+
     Page<Map> findByIsEnabledTrueAndNameContainingIgnoreCase(String query, Pageable pageable);
 
 }

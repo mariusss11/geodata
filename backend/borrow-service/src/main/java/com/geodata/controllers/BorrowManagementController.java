@@ -36,10 +36,10 @@ public class BorrowManagementController {
 //        return ResponseEntity.ok(borrowManagementService.getAllTodayBorrowActions());
 //    }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<BorrowsDTO>> getAllBorrows() {
-        return ResponseEntity.ok(borrowManagementService.getAllBorrows());
-    }
+//    @GetMapping("/all")
+//    public ResponseEntity<List<BorrowsDTO>> getAllBorrows() {
+//        return ResponseEntity.ok(borrowManagementService.getAllBorrows());
+//    }
 
 //    @GetMapping("/borrow-history")
 //    public ResponseEntity<List<BorrowActionsDTO>> getBorrowHistory() {
@@ -65,14 +65,14 @@ public class BorrowManagementController {
         return ResponseEntity.ok(borrowManagementService.declineBorrowByLibrarian(clientId, itemId, reason));
     }
 
-    @PostMapping("/approveReturn/{clientId}/{itemId}")
-    public ResponseEntity<Object> approveReturn(
-            @NotNull @PathVariable int clientId,
-            @NotNull @PathVariable int itemId,
-            @RequestBody(required = false) LibrarianReason reason
-    ) {
-        return ResponseEntity.ok(borrowManagementService.approveReturnByLibrarian(clientId, itemId, reason));
-    }
+//    @PostMapping("/approveReturn/{clientId}/{itemId}")
+//    public ResponseEntity<Object> approveReturn(
+//            @NotNull @PathVariable int clientId,
+//            @NotNull @PathVariable int itemId,
+//            @RequestBody(required = false) LibrarianReason reason
+//    ) {
+//        return ResponseEntity.ok(borrowManagementService.approveReturnByLibrarian(clientId, itemId, reason));
+//    }
 
     @PostMapping("/declineReturn/{clientId}/{itemId}")
     public ResponseEntity<Object> declineReturn(

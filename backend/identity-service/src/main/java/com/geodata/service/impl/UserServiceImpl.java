@@ -9,9 +9,13 @@ import com.geodata.model.User;
 import com.geodata.repository.UserRepository;
 import com.geodata.security.jwt.JwtUtils;
 import com.geodata.service.UserService;
+import com.geodata.utils.PagedResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -27,15 +31,13 @@ import java.util.Optional;
 @Slf4j
 public class UserServiceImpl implements UserService {
 
-    @Value("${services.borrowService}")
-    private String borrowService;
-
     private static final String HTTP = "http://";
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final RestTemplate restTemplate;
+    @Value("${services.borrowService}")
+    private String borrowService;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils, RestTemplate restTemplate) {
@@ -126,6 +128,61 @@ public class UserServiceImpl implements UserService {
         userRepository.save(userToDisable);
         return "Disabled successfully the user with the email: " + email;
     }
+
+    @Override
+    public User getUserInfo() {
+        return getCurrentLoggedInUser();
+    }
+
+    @Override
+    public User getUserById(int userId) {
+        return userRepository.getReferenceById(userId);
+    }
+
+    @Override
+    public PagedResponse<User> getUsersPaginated(int pageNumber, int pageSize, String search) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        Page<User> list;
+        if (search != null && !search.isEmpty()) {
+            list = userRepository.findByIsEnabledTrueAndNameContainingIgnoreCaseOrIsEnabledTrueAndUsernameContainingIgnoreCase(
+                    search, search, pageable
+            );
+
+        } else {
+             list = userRepository.findAll(pageable);
+        }
+
+//        log.info("the list is: {}", list);
+        return new PagedResponse<>(list);
+    }
+
+    @Override
+    public PagedResponse<User> getUsersPaginatedExcludeUser(
+            int pageNumber,
+            int pageSize,
+            String search
+    ) {
+        User requester = getUserInfo();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        Page<User> list;
+
+        UserRole role = UserRole.USER;
+
+        if (search != null && !search.isEmpty()) {
+            list = userRepository
+                    .searchEnabledUsersExcludeId(
+                            requester.getUserId(),
+                            search,
+                            role,
+                            pageable
+                    );
+        } else {
+            list = userRepository.findByIsEnabledTrueAndUserIdNotAndRole(requester.getUserId(), role, pageable);
+        }
+
+        return new PagedResponse<>(list);
+    }
+
 
     @Override
     public Response<User> whoami() {

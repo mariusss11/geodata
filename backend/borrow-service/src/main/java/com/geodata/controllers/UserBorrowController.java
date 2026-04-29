@@ -1,9 +1,13 @@
 package com.geodata.controllers;
 
+import com.geodata.model.Map;
+import com.geodata.model.PagedResponse;
 import com.geodata.services.BorrowsService;
-import com.geodata.utils.*;
+import com.geodata.utils.BorrowedMapDto;
+import com.geodata.utils.TransferMapRequest;
+import com.geodata.utils.TransferResponse;
 import com.geodata.utils.requests.BorrowMapRequest;
-import com.geodata.utils.requests.ReturnItemRequest;
+import com.geodata.utils.requests.ReturnMapRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +31,17 @@ public class UserBorrowController {
     @PostMapping("/create")
     public ResponseEntity<String> makeRequestToBorrowMap(@RequestBody BorrowMapRequest request) {
         log.info("Trying to create a borrow request with: {}", request);
-        return borrowsService.makeRequestToBorrowMap(request);
+        return borrowsService.borrowMap(request);
+    }
+
+    @PostMapping("/return")
+    public ResponseEntity<String> transferBorrowedItem(@RequestBody ReturnMapRequest request) {
+        return borrowsService.returnMap(request);
+    }
+
+    @PostMapping("/transfer")
+    public ResponseEntity<TransferResponse> transferBorrowedItem(@RequestBody TransferMapRequest request) {
+        return ResponseEntity.ok(borrowsService.transferBorrowedItem(request));
     }
 
 //    @GetMapping("/returned-items/{clientId}")
@@ -52,27 +66,26 @@ public class UserBorrowController {
     }
 
     /**
-     * @param clientId use to get the client info
      * @return the ids of the items the client is currently borrowing, status <b>borrowed</b>
      */
-    @GetMapping("/current/{clientId}")
-    public ResponseEntity<List<Integer>> getClientCurrentBorrows(@PathVariable int clientId) {
+    @GetMapping("/current")
+    public ResponseEntity<PagedResponse<BorrowedMapDto>> getUserCurrentBorrows(
+            @RequestParam int pageNumber,
+            @RequestParam int pageSize,
+            @RequestParam(required = false) String searchQuery
+    ) {
         log.info("Returning items that are currently borrowed by the client");
-        return ResponseEntity.ok(borrowsService.getClientAllCurrentBorrowsById(clientId));
+        return ResponseEntity.ok(borrowsService.getUserCurrentBorrows(pageNumber, pageSize, searchQuery));
     }
 
-    /**
-     * @param clientId use to get the client info
-     * @return the ids of the items the client is currently borrowing, status <b>borrowed</b>
-     */
-    @GetMapping("/currently-borrowing/filtered")
-    public ResponseEntity<List<BorrowsDTO>> getClientItemsCurrentlyBorrowed(
-            @RequestParam int clientId,
-            @RequestParam(name = "searchQuery") String query
-    ) {
-        log.info("Returning the items that are currently borrowed by the client");
-        return ResponseEntity.ok(borrowsService.getClientMapsCurrentlyBorrowed(clientId, query));
-    }
+//    @GetMapping("/currently-borrowing/filtered")
+//    public ResponseEntity<List<BorrowsDTO>> getClientItemsCurrentlyBorrowed(
+//            @RequestParam int clientId,
+//            @RequestParam(name = "searchQuery") String query
+//    ) {
+//        log.info("Returning the items that are currently borrowed by the client");
+//        return ResponseEntity.ok(borrowsService.getClientMapsCurrentlyBorrowed(clientId, query));
+//    }
 
 //    /**
 //     * @param clientId use to get the client info
@@ -85,8 +98,5 @@ public class UserBorrowController {
 
 
 
-    @PostMapping("/return")
-    public ResponseEntity<String> returnBorrowedItem(@RequestBody ReturnItemRequest request) {
-        return borrowsService.makeRequestToReturnItem(request);
-    }
+
 }

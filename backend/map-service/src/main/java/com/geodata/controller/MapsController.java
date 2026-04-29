@@ -1,13 +1,14 @@
 package com.geodata.controller;
 
 import com.geodata.dto.MapsStats;
+import com.geodata.model.AvailabilityStatus;
 import com.geodata.model.Map;
 import com.geodata.model.PagedResponse;
 import com.geodata.service.MapService;
 import com.geodata.utils.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +28,9 @@ public class MapsController {
         return ResponseEntity.ok(mapService.getMap(request.getId()));
     }
 
-    @GetMapping("/all/pagination")
-    public PagedResponse<Map> getAllItemsPaginated(
-            @RequestParam int pageNumber,
-            @RequestParam int pageSize
-    ) {
-        return mapService.getAllEnabledItemsPaginated(pageNumber, pageSize);
+    @PostMapping("/batch")
+    public ResponseEntity<List<Map>> getMapsById(@RequestBody List<Integer> mapIds) {
+        return ResponseEntity.ok(mapService.getMapsById(mapIds));
     }
 
     @GetMapping("/number")
@@ -61,8 +59,12 @@ public class MapsController {
 //    }
 
     @GetMapping("/search/pagination")
-    public PagedResponse<Map> getAllItemsPaginated(Pageable pageable, @RequestParam String query) {
-        return mapService.getAllEnabledItemsPaginatedBySearch(pageable, query);
+    public PagedResponse<Map> getAllItemsPaginated(
+            @RequestParam int pageNumber,
+            @RequestParam int pageSize,
+            @RequestParam(required = false) String searchQuery
+    ) {
+        return mapService.getAllEnabledItemsPaginatedBySearch(pageNumber, pageSize, searchQuery);
     }
 
 //    @GetMapping("/params")
@@ -86,6 +88,33 @@ public class MapsController {
     public ResponseEntity<List<Map>> getAllEnabledItems() {
         log.info("Returning all the enabled maps: {}", SecurityContextHolder.getContext().getAuthentication().getName());
         return ResponseEntity.ok(mapService.getAllEnabledItems());
+    }
+
+    @PutMapping("/setAvailableToBorrowed")
+    public ResponseEntity<Void> setAvailableToBorrowed(@RequestBody LockItemRequest request) {
+        log.info("Setting the availability of the map {} from available to borrowed", request);
+        Map map = mapService.getById(request.getMapId());
+        if (!map.getAvailabilityStatus().equalsIgnoreCase("AVAILABLE"))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+
+        // set it to pending to approve, because the librarian should approve the borrow
+        map.setAvailabilityStatus(AvailabilityStatus.BORROWED.dbValue());
+        mapService.saveItemVoid(map);
+        return ResponseEntity.ok().build();
+    }
+
+
+    @PutMapping("/setBorrowedToAvailable")
+    public ResponseEntity<Void> setBorrowedToAvailable(@RequestBody LockItemRequest request) {
+        log.info("Setting the availability of the map {} from borrowed to available", request);
+        Map map = mapService.getById(request.getMapId());
+        if (map.getAvailabilityStatus().equalsIgnoreCase("AVAILABLE"))
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+
+        // set it to pending to approve, because the librarian should approve the borrow
+        map.setAvailabilityStatus(AvailabilityStatus.AVAILABLE.dbValue());
+        mapService.saveItemVoid(map);
+        return ResponseEntity.ok().build();
     }
 
 }

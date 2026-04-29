@@ -1,11 +1,11 @@
-package com.geodata.model;
+package com.geodata.utils;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.domain.Page;
 
-import java.util.*;
+import java.util.List;
 
 @Data
 @AllArgsConstructor

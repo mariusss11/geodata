@@ -30,6 +30,6 @@ public enum BorrowsStatus {
      * @return the lowercase name of the enum constant.
      */
     public String dbValue() {
-        return this.name().toLowerCase();
+        return this.name().toUpperCase();
     }
 }

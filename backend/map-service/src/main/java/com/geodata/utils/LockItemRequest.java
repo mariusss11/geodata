@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LockItemRequest {
-    private int itemId;
+    private int mapId;
 }

@@ -22,11 +22,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class SecurityConfig {
+public class UserServiceSecurityConfig {
 
-    private final AuthFilter authFilter;
     private static final String USER_ROLE = "USER";
     private static final String ADMIN_ROLE = "ADMIN";
+    private final AuthFilter authFilter;
 
     /**
      * Found more info about Spring Security <a href="https://docs.spring.io/spring-security/reference/servlet/authorization/authorize-http-requests.html">official docs</a>
@@ -51,6 +51,8 @@ public class SecurityConfig {
 
                         // basic requests for the user
                         .requestMatchers("/api/home").authenticated()
+
+                        .requestMatchers(HttpMethod.GET,"/api/users/**").hasAnyAuthority(ADMIN_ROLE, USER_ROLE)
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()

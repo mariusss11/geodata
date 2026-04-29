@@ -43,7 +43,7 @@ public class LibraryItem {
     }
 
     public boolean isAvailable() {
-        return availabilityStatus.equalsIgnoreCase(AvailabilityStatus.AVAILABLE.dbValue());
+        return availabilityStatus.equalsIgnoreCase(BorrowStatus.AVAILABLE.dbValue());
     }
 
 }
