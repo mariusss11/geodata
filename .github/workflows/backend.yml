@@ -54,10 +54,6 @@ jobs:
     needs: test
     # Skip on forks where SONAR_TOKEN isn't available.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    # Non-blocking until "Automatic Analysis" is disabled in SonarCloud
-    # (Administration → Analysis Method → disable). Keeping CI scan for the
-    # JaCoCo coverage data that automatic analysis can't see.
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
