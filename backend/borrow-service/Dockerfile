@@ -2,8 +2,10 @@
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /build
 COPY pom.xml .
+COPY identity-service/pom.xml identity-service/
+COPY map-service/pom.xml map-service/
 COPY borrow-service/pom.xml borrow-service/
-RUN mvn -pl borrow-service dependency:go-offline -q
+RUN mvn -pl borrow-service -am dependency:go-offline -q
 COPY borrow-service/src borrow-service/src
 RUN mvn -pl borrow-service package -DskipTests -q
 
