@@ -92,11 +92,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    # Non-blocking until pre-existing identity-service / borrow-service ghcr
-    # packages are linked to this repo (Package settings → Manage Actions
-    # access → add mariusss11/geodata with Write), or deleted so the workflow
-    # can recreate them under this repo's namespace.
-    continue-on-error: true
 
     strategy:
       fail-fast: false
