@@ -1,9 +1,12 @@
 package com.geodata.service.impl;
 
+import com.geodata.dto.ChangePasswordRequest;
 import com.geodata.dto.LoginRequest;
 import com.geodata.dto.Response;
 import com.geodata.dto.CreateUserRequest;
+import com.geodata.dto.UpdateProfileRequest;
 import com.geodata.enums.UserRole;
+import com.geodata.exceptions.InvalidPasswordException;
 import com.geodata.exceptions.UserNotFoundException;
 import com.geodata.model.User;
 import com.geodata.repository.UserRepository;
@@ -137,6 +140,25 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(int userId) {
         return userRepository.getReferenceById(userId);
+    }
+
+    @Override
+    public User updateProfile(UpdateProfileRequest request) {
+        User user = getCurrentLoggedInUser();
+        user.setName(request.getName());
+        user.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(user);
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        User user = getCurrentLoggedInUser();
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new InvalidPasswordException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 
     @Override

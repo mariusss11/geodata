@@ -3,14 +3,25 @@ kind: ConfigMap
 metadata:
   name: identity-service-config
 data:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres?currentSchema=auth
-  SPRING_DATASOURCE_USERNAME: postgres
-  SPRING_DATASOURCE_PASSWORD: admin
-  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-  ALLOWED_ORIGINS: "http://a312ebdfe078b4941b8ca485894409f4-891584174.eu-central-1.elb.amazonaws.com"
-  BORROW_SERVICE: borrow-service:8030
-  CLIENT_SERVICE: client-service:8010
-  ITEM_SERVICE: item-service:8020
+  SUPABASE_JDBC_URL: "jdbc:postgresql://postgres:5432/postgres?currentSchema=auth"
+  SUPABASE_DATABASE_USER: "postgres"
+  SUPABASE_DATABASE_PASSWORD: "admin"
+  ALLOWED-ORIGINS: "http://a312ebdfe078b4941b8ca485894409f4-891584174.eu-central-1.elb.amazonaws.com"
+  BORROW_SERVICE: "borrow-service:8030"
+  MAP_SERVICE: "map-service:8020"
+  SPRING_PROFILES_ACTIVE: "prod"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: identity-service-secrets
+type: Opaque
+stringData:
+  JWT_SECRET: "change-me-in-prod-use-min-32-chars-string"
+  ADMIN_USERNAME: "admin"
+  ADMIN_PASSWORD: "admin123!"
+  LIBRARIAN_USERNAME: "librarian"
+  LIBRARIAN_PASSWORD: "librarian123!"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,72 +40,94 @@ spec:
       containers:
         - name: identity-service
           image: ghcr.io/mariusss11/identity-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8050
+            - containerPort: 8010
+              name: http
           env:
-            - name: DB_HOST
-              value: "postgres"
-            - name: SPRING_DATASOURCE_URL
+            - name: SUPABASE_JDBC_URL
               valueFrom:
                 configMapKeyRef:
                   name: identity-service-config
-                  key: SPRING_DATASOURCE_URL
-            - name: SPRING_DATASOURCE_USERNAME
+                  key: SUPABASE_JDBC_URL
+            - name: SUPABASE_DATABASE_USER
               valueFrom:
                 configMapKeyRef:
                   name: identity-service-config
-                  key: SPRING_DATASOURCE_USERNAME
-            - name: SPRING_DATASOURCE_PASSWORD
+                  key: SUPABASE_DATABASE_USER
+            - name: SUPABASE_DATABASE_PASSWORD
               valueFrom:
                 configMapKeyRef:
                   name: identity-service-config
-                  key: SPRING_DATASOURCE_PASSWORD
-            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+                  key: SUPABASE_DATABASE_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: identity-service-secrets
+                  key: JWT_SECRET
+            - name: ALLOWED-ORIGINS
               valueFrom:
                 configMapKeyRef:
                   name: identity-service-config
-                  key: SPRING_KAFKA_BOOTSTRAP_SERVERS
-            - name: ALLOWED_ORIGINS
-              valueFrom:
-                configMapKeyRef:
-                  name: identity-service-config
-                  key: ALLOWED_ORIGINS
+                  key: ALLOWED-ORIGINS
             - name: BORROW_SERVICE
               valueFrom:
                 configMapKeyRef:
                   name: identity-service-config
                   key: BORROW_SERVICE
-            - name: CLIENT_SERVICE
+            - name: MAP_SERVICE
               valueFrom:
                 configMapKeyRef:
                   name: identity-service-config
-                  key: CLIENT_SERVICE
-            - name: ITEM_SERVICE
+                  key: MAP_SERVICE
+            - name: SPRING_PROFILES_ACTIVE
               valueFrom:
                 configMapKeyRef:
                   name: identity-service-config
-                  key: ITEM_SERVICE
+                  key: SPRING_PROFILES_ACTIVE
             - name: ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: login-secrets
+                  name: identity-service-secrets
                   key: ADMIN_USERNAME
             - name: ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: login-secrets
+                  name: identity-service-secrets
                   key: ADMIN_PASSWORD
             - name: LIBRARIAN_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: login-secrets
+                  name: identity-service-secrets
                   key: LIBRARIAN_USERNAME
             - name: LIBRARIAN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: login-secrets
+                  name: identity-service-secrets
                   key: LIBRARIAN_PASSWORD
-
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8010
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8010
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service
@@ -105,5 +138,6 @@ spec:
     app: identity-service
   ports:
     - protocol: TCP
-      port: 8050
-      targetPort: 8050
+      port: 8010
+      targetPort: 8010
+      name: http

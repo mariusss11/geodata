@@ -1,8 +1,11 @@
 package com.geodata.controller;
 
+import com.geodata.dto.ChangePasswordRequest;
 import com.geodata.dto.Response;
+import com.geodata.dto.UpdateProfileRequest;
 import com.geodata.model.User;
 import com.geodata.service.UserService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +33,17 @@ public class HomeController {
     public ResponseEntity<Response<User>> whoami() {
         log.info("In the whoami method ");
         return ResponseEntity.ok(userService.whoami());
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<User> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        return ResponseEntity.ok(userService.updateProfile(request));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(request);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/disable")

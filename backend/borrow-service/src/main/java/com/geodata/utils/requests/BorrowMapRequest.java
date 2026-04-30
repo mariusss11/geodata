@@ -16,7 +16,9 @@ public class BorrowMapRequest {
     @NotNull
     private int mapId;
 
+    @NotBlank
+    private String borrowerName;
+
     @NotNull
     private LocalDate returnDate;
-
 }

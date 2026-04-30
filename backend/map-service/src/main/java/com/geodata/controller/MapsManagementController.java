@@ -4,6 +4,7 @@ import com.geodata.model.Map;
 import com.geodata.service.MapService;
 import com.geodata.utils.CreateMapRequest;
 import com.geodata.utils.DisableItemRequest;
+import com.geodata.utils.UpdateMapRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,11 @@ public class MapsManagementController {
     @PostMapping("/create")
     public ResponseEntity<Map> createItem(@RequestBody CreateMapRequest request) {
         return ResponseEntity.ok(mapService.saveItem(request));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Map> updateItem(@PathVariable int id, @RequestBody UpdateMapRequest request) {
+        return ResponseEntity.ok(mapService.updateMap(id, request));
     }
 
     @PutMapping("/disable")

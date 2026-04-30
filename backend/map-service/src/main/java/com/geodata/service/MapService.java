@@ -87,6 +87,15 @@ public class MapService {
 
 
 //    TODO: think about the thing when someone wants to delete a map that has the same name as other one
+    public Map updateMap(int id, UpdateMapRequest request) {
+        Map map = getById(id);
+        map.setName(request.getName());
+        map.setYear(request.getYearPublished());
+        map.setUpdatedAt(LocalDateTime.now());
+        mapRepository.save(map);
+        return map;
+    }
+
     public String removeMap(DisableItemRequest request) {
         Map mapToDisable = getMapByName(request.getName());
         // check if the item is borrowed

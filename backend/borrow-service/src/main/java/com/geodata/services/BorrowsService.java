@@ -19,7 +19,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -40,7 +39,7 @@ public class BorrowsService {
     private final RestTemplate restTemplate;
     private final JwtUtils jwtUtils;
     private final HttpServletRequest httpRequest;
-    @Value("${services.clientService}")
+    @Value("${services.identityService}")
     private String userService;
     @Value("${services.mapService}")
     private String mapService;
@@ -55,7 +54,7 @@ public class BorrowsService {
     }
 
     public ResponseEntity<String> borrowMap(BorrowMapRequest request) {
-        log.info("Borrowing item: {}", request);
+        log.info("Borrowing map: {}", request);
 
         if (request.getReturnDate().isBefore(LocalDate.now()))
             throw new InvalidReturnDate("Invalid return date: " + request.getReturnDate());
@@ -65,81 +64,25 @@ public class BorrowsService {
         headers.setBearerAuth(token);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-
-        // defining the object that will be used
-        Map mapToBorrow= null;
-        User userThatBorrows;
-        Borrows borrowRecord = null;
+        Map mapToBorrow = null;
 
         try {
+            mapToBorrow = getMapInfo(request.getMapId(), entity);
 
-            log.info("Requesting the user info");
-
-            // requesting the client
-            ResponseEntity<User> userResponse = restTemplate
-                    .exchange(
-                            HTTP + userService + "/api/home",
-                            HttpMethod.GET,
-                            entity,
-                            User.class
-                    );
-
-            if (userResponse.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND))
-                throw new UserNotFoundException("User not found");
-
-
-            if (userResponse.getBody() == null)
-                throw new UserServiceException("User service response body is empty");
-
-            log.info("The user response who borrows: {}", userResponse);
-            userThatBorrows = userResponse.getBody();
-            log.info("The user that borrows: {}", userThatBorrows);
-
-
-
-            log.info("Requesting the map info");
-
-            // requesting the item to borrow
-            ResponseEntity<Map> itemResponse = restTemplate
-                    .exchange(
-                            HTTP + mapService + "/api/maps/{mapId}",
-                            HttpMethod.GET,
-                            entity,
-                            Map.class,
-                            request.getMapId()
-                    );
-
-            if (itemResponse.getBody() == null)
-                throw new ItemServiceException("Item service response is empty");
-
-            mapToBorrow = itemResponse.getBody();
             if (!mapToBorrow.getAvailabilityStatus().equalsIgnoreCase("AVAILABLE") || !mapToBorrow.isEnabled())
                 throw new MapNotAvailableException("Map not available");
 
-
-            // START MAKING CHANGES
-            // lock the item (availability set to PENDING_APPROVAL)
             HttpHeaders postHeaders = new HttpHeaders();
             postHeaders.setContentType(MediaType.APPLICATION_JSON);
             postHeaders.setBearerAuth(token);
 
             LockItemRequest lockRequest = new LockItemRequest(mapToBorrow.getId());
             HttpEntity<LockItemRequest> lockEntity = new HttpEntity<>(lockRequest, postHeaders);
+            changeMapStatusFromAvailableToBorrowed(lockEntity);
 
-            ResponseEntity<Void> updateResponse = restTemplate.exchange(
-                    HTTP + mapService + "/api/maps/setAvailableToBorrowed",
-                    HttpMethod.PUT,
-                    lockEntity,
-                    Void.class
-            );
-
-            if (updateResponse.getStatusCode().isError())
-                throw new ItemServiceException("Error occurred when changing the status on the item");
-
-            // STEP 4: Save borrow record
-            borrowRecord = borrowsRepository.save(
+            borrowsRepository.save(
                     Borrows.builder()
-                            .userId(userThatBorrows.getUserId())
+                            .borrowerName(request.getBorrowerName())
                             .mapId(mapToBorrow.getId())
                             .borrowDate(LocalDateTime.now())
                             .returnDate(request.getReturnDate())
@@ -147,39 +90,27 @@ public class BorrowsService {
                             .build()
             );
 
-            log.info("Borrow saga completed successfully. Borrow record create: {}", borrowRecord);
+            log.info("Borrow completed successfully for borrower '{}'", request.getBorrowerName());
 
-            // Catching
-            // checking if the borrow failed because the item is already borrowed,
-            // or the client is not found
-        } catch (ItemServiceException | UserServiceException | MapNotAvailableException e) {
+        } catch (ItemServiceException | MapNotAvailableException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
+            log.error("Borrow saga failed: {}", e.getMessage());
 
-            log.info("Saga failed: {}", e.getMessage());
-
-            // COMPENSATIONS STEP 1: Unlock item if locked (set the availability to available
             try {
-                HttpHeaders unlockHeaders = new HttpHeaders();
-                unlockHeaders.setContentType(MediaType.APPLICATION_JSON);
-                unlockHeaders.setBearerAuth(token);
-
-                assert mapToBorrow != null;
-                LockItemRequest unlockRequest = new LockItemRequest(mapToBorrow.getId());
-                HttpEntity<LockItemRequest> unlockEntity = new HttpEntity<>(unlockRequest, unlockHeaders);
-
-                restTemplate.exchange(
-                        HTTP + mapService + "/api/maps/setBorrowedToAvailable",
-                        HttpMethod.PUT,
-                        unlockEntity,
-                        Void.class
-                );
-
+                if (mapToBorrow != null) {
+                    HttpHeaders unlockHeaders = new HttpHeaders();
+                    unlockHeaders.setContentType(MediaType.APPLICATION_JSON);
+                    unlockHeaders.setBearerAuth(token);
+                    LockItemRequest unlockRequest = new LockItemRequest(mapToBorrow.getId());
+                    HttpEntity<LockItemRequest> unlockEntity = new HttpEntity<>(unlockRequest, unlockHeaders);
+                    restTemplate.exchange(HTTP + mapService + "/api/maps/setBorrowedToAvailable",
+                            HttpMethod.PUT, unlockEntity, Void.class);
+                }
             } catch (Exception unlockEx) {
-                log.error("Failed to rollback item lock: {}", unlockEx.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred when changing the status for compensation");
+                log.error("Failed to rollback map lock: {}", unlockEx.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during rollback");
             }
-            log.info("Rolled back every action because an error occurred when making a borrow request");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
         return ResponseEntity.ok("Borrow started successfully");
@@ -233,81 +164,45 @@ public class BorrowsService {
 
 
     public ResponseEntity<String> returnMap(ReturnMapRequest request) {
-        log.info("Returning map with id: {}", request.getMapId());
+        log.info("Returning borrow record id: {}", request.getBorrowId());
 
-        String authHeader = httpRequest.getHeader("Authorization");
-        String token = jwtUtils.getToken(authHeader);
+        String token = getAuthToken();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        Borrows borrowRecord = getBorrowById(request.getBorrowId());
 
-        Map mapToReturn = null;
-        User userThatReturns;
-        Borrows borrowRecord;
+        if (!borrowRecord.getStatus().equalsIgnoreCase(BorrowsStatus.BORROWED.dbValue()))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This borrow record is not in BORROWED status");
 
         try {
-
-            // request the map
-            mapToReturn = getMapInfo(request.getMapId(), entity);
-
-            if (mapToReturn.getAvailabilityStatus().equalsIgnoreCase("AVAILABLE") || !mapToReturn.isEnabled())
-                throw new MapNotAvailableException("Map is not borrowed");
-
-            userThatReturns = getUserInfo(entity);
-
-            // check if this client had borrowed the item
-            borrowRecord = borrowsRepository.findByUserIdAndMapIdAndStatus(
-                            userThatReturns.getUserId(),
-                            mapToReturn.getId(),
-                            BorrowsStatus.BORROWED.dbValue()).stream().findFirst()
-                    .orElseThrow(() -> new RuntimeException("You haven't borrowed this map"));
-
-
-            // start making some changes
-            // unlock the item (set the status to pending)
             HttpHeaders putHeaders = new HttpHeaders();
             putHeaders.setContentType(MediaType.APPLICATION_JSON);
             putHeaders.setBearerAuth(token);
 
-            LockItemRequest lockRequest = new LockItemRequest(mapToReturn.getId());
+            LockItemRequest lockRequest = new LockItemRequest(borrowRecord.getMapId());
             HttpEntity<LockItemRequest> updateEntity = new HttpEntity<>(lockRequest, putHeaders);
+            changeMapStatusFromBorrowedToAvailable(updateEntity);
 
-            try {
-                changeMapStatusFromBorrowedToAvailable(updateEntity);
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Error occurred when changing the status of hte item during request to return an item");
-            }
-
-            // update the borrow record
             borrowRecord.setStatus(BorrowsStatus.RETURNED.dbValue());
+            borrowRecord.setActualReturnDate(LocalDateTime.now());
             borrowsRepository.save(borrowRecord);
 
-            log.info("Return saga completed successfully");
+            log.info("Return completed for borrow id: {}", request.getBorrowId());
 
-        } catch (ItemServiceException | UserServiceException | MapNotAvailableException e) {
+        } catch (ItemServiceException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
-            log.error("Exception during returnItem, starting compensation: {}", e.getMessage());
-
-            // Compensation steps
-            // Trying to change the status back to how it was
+            log.error("Exception during returnMap, compensating: {}", e.getMessage());
             try {
                 HttpHeaders putHeaders = new HttpHeaders();
                 putHeaders.setContentType(MediaType.APPLICATION_JSON);
                 putHeaders.setBearerAuth(token);
-
-                assert mapToReturn != null;
-                LockItemRequest lockRequest = new LockItemRequest(mapToReturn.getId());
+                LockItemRequest lockRequest = new LockItemRequest(borrowRecord.getMapId());
                 HttpEntity<LockItemRequest> updateEntity = new HttpEntity<>(lockRequest, putHeaders);
                 changeMapStatusFromAvailableToBorrowed(updateEntity);
-                log.info("Compensation: locked the item again");
             } catch (Exception lockEx) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred when changing the status for compensation when returning item");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during return rollback");
             }
-            log.info("Rolled back every action because an error occurred when making a return request");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error occurred when making the return request. Please try again later");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error during return. Please try again.");
         }
         return ResponseEntity.ok("Map successfully returned");
     }
@@ -400,7 +295,7 @@ public class BorrowsService {
                     return BorrowedMapDto.builder()
                             .borrowId(borrow.getId())
                             .mapId(map.getId())
-                            .userId(borrow.getUserId())
+                            .borrowerName(borrow.getBorrowerName())
                             .name(map.getName())
                             .year(map.getYear())
                             .isEnabled(map.isEnabled())
@@ -543,108 +438,46 @@ public class BorrowsService {
 
     @Transactional
     public TransferResponse transferBorrowedItem(TransferMapRequest request) {
+        Borrows borrow = getBorrowById(request.getBorrowId());
 
-
+        if (!borrow.getStatus().equalsIgnoreCase(BorrowStatus.BORROWED.dbValue()))
+            throw new TransferMapException("Cannot transfer: map is not currently borrowed");
 
         String token = getAuthToken();
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        // Get the user that is making the request
-        User requester = getUserInfo(entity);
+        Map mapTransferred = getMapInfo(borrow.getMapId(), entity);
 
-        if (request.getUserIdToTransfer() == requester.getUserId())
-            throw new TransferMapException("You cannot transfer maps to yourself!");
-
-        Borrows borrow = getBorrowById(request.getBorrowId());
-
-        // Ownership check (redundant but safe)
-        if (borrow.getUserId() != requester.getUserId()) {
-            throw new AccessDeniedException("You do not own this borrowed map");
-        }
-
-        // Get the user the map is transferred to (check if he is enabled)
-        User userToTransfer = checkIfUserIsEnabledByUserId(entity, request.getUserIdToTransfer());
-
-        // Get the map info
-        Map mapToTransfer = getMapInfo(request.getMapId(), entity);
-
-        if (!mapToTransfer.canBeTransferred()) {
+        if (!mapTransferred.canBeTransferred())
             throw new InvalidMapException("Map cannot be transferred!");
-        }
 
-        // Update the status of the old borrow
         borrow.setStatus(BorrowStatus.TRANSFERRED.dbValue());
+        borrow.setActualReturnDate(LocalDateTime.now());
         borrowsRepository.save(borrow);
 
-        // create the new borrow
         Borrows newBorrow = Borrows.builder()
                 .borrowDate(LocalDateTime.now())
-                .userId(userToTransfer.getUserId())
-                .mapId(mapToTransfer.getId())
-                .returnDate(borrow.getReturnDate())
+                .borrowerName(request.getNewBorrowerName())
+                .mapId(borrow.getMapId())
+                .returnDate(request.getNewExpectedReturnDate())
+                .status(BorrowStatus.BORROWED.dbValue())
                 .build();
-
-        // save the enw new borrow
         borrowsRepository.save(newBorrow);
+
+        log.info("Map {} transferred from '{}' to '{}'", borrow.getMapId(), borrow.getBorrowerName(), request.getNewBorrowerName());
 
         return TransferResponse.builder()
                 .newBorrow(newBorrow)
-                .userTransferred(userToTransfer)
-                .mapTransferred(mapToTransfer)
+                .newBorrowerName(request.getNewBorrowerName())
+                .mapTransferred(mapTransferred)
                 .build();
-    }
-
-    private User getUserInfo(HttpEntity<Void> entity) {
-        log.info("Requesting the user info from the identity-service");
-
-        // requesting the client
-        ResponseEntity<User> userResponse = restTemplate
-                .exchange(
-                        HTTP + userService + "/api/home",
-                        HttpMethod.GET,
-                        entity,
-                        User.class
-                );
-
-        if (userResponse.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND))
-            throw new UserNotFoundException("User not found");
-
-        if (userResponse.getBody() == null)
-            throw new UserServiceException("User service response body is empty");
-
-        log.info("The user response who borrows from the identity-service: {}", userResponse);
-        return userResponse.getBody();
-
     }
 
     private Borrows getBorrowById(int borrowId) {
         return borrowsRepository.findById(borrowId)
                 .orElseThrow(() -> new BorrowNotFoundException("Borrow not found"));
-    }
-
-    private User checkIfUserIsEnabledByUserId(HttpEntity<Void> entity, int userId) {
-        log.info("Checking if the user is enabled from identity-service");
-
-        // requesting the client
-        ResponseEntity<User> userResponse = restTemplate
-                .exchange(
-                        HTTP + userService + "/api/users/{userId}",
-                        HttpMethod.GET,
-                        entity,
-                        User.class,
-                        userId
-                );
-
-        if (userResponse.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND))
-            throw new UserNotFoundException("User not found");
-
-        if (userResponse.getBody() == null)
-            throw new UserServiceException("User service response body is empty");
-
-        log.info("The user checked by the identity-service: {}", userResponse);
-        return userResponse.getBody();
     }
 
 }

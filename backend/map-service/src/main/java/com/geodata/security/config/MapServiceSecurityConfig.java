@@ -37,14 +37,15 @@ public class MapServiceSecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
 
 
-                        // request for managing maps (create)
-                        .requestMatchers(HttpMethod.POST, "/api/maps/manager/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE)
+                        // request for managing maps (create, update)
+                        .requestMatchers(HttpMethod.POST, "/api/maps/manager/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE, USER_ROLE)
+                        .requestMatchers(HttpMethod.PUT, "/api/maps/manager/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE, USER_ROLE)
 
                         // request for borrowing
                         .requestMatchers(HttpMethod.PUT, "/api/maps/setBorrowedToAvailable").hasAuthority(USER_ROLE)
                         .requestMatchers(HttpMethod.PUT, "/api/maps/setAvailableToBorrowed").hasAuthority(USER_ROLE)
 
-                        // request for management
+                        // request for management (admin/manager only for other operations)
                         .requestMatchers("/api/maps/manager/**").hasAnyAuthority(ADMIN_ROLE, MANAGER_ROLE)
 
                         // request for getting maps / maps info

@@ -1,8 +1,10 @@
 package com.geodata.service;
 
+import com.geodata.dto.ChangePasswordRequest;
 import com.geodata.dto.LoginRequest;
 import com.geodata.dto.Response;
 import com.geodata.dto.CreateUserRequest;
+import com.geodata.dto.UpdateProfileRequest;
 import com.geodata.model.User;
 import com.geodata.utils.PagedResponse;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,10 @@ public interface UserService {
     User getUserInfo();
 
     User getUserById(int userId);
+
+    User updateProfile(UpdateProfileRequest request);
+
+    void changePassword(ChangePasswordRequest request);
 
     PagedResponse<User> getUsersPaginated(int pageNumber, int pageSize, String search);
 

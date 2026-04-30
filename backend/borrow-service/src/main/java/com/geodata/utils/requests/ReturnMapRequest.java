@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ReturnMapRequest {
     @NotNull
-    private int mapId;
+    private int borrowId;
 }

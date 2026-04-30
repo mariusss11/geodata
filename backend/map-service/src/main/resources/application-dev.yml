@@ -1,0 +1,7 @@
+cors:
+  allowed-origins: "http://localhost:80,http://localhost:81,http://localhost:5173"
+
+logging:
+  level:
+    root: DEBUG
+    org.springframework.security: TRACE

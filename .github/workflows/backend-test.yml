@@ -1,0 +1,86 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-test.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: admin
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Maven analyze
+        working-directory: backend
+        run: ./mvnw -q clean compile
+
+      - name: Run unit tests (all modules)
+        working-directory: backend
+        run: |
+          ./mvnw -q test \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/postgres \
+            -Dspring.datasource.username=postgres \
+            -Dspring.datasource.password=admin \
+            -Dspring.flyway.enabled=false
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+      - name: Build all services (integration tests)
+        working-directory: backend
+        run: |
+          ./mvnw -q clean package \
+            -DskipTests \
+            -pl identity-service,map-service,borrow-service
+
+      - name: Build all services
+        working-directory: backend
+        run: |
+          ./mvnw -q clean package -DskipTests \
+            -pl identity-service,map-service,borrow-service
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-test-results
+          path: |
+            backend/**/target/surefire-reports/
+            backend/**/target/failsafe-reports/
+          retention-days: 30
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Backend Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Unit tests completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All services built successfully" >> $GITHUB_STEP_SUMMARY

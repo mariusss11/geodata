@@ -2,7 +2,6 @@ package com.geodata.utils;
 
 import com.geodata.model.Borrows;
 import com.geodata.model.Map;
-import com.geodata.model.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +13,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TransferResponse {
     Borrows newBorrow;
-    User userTransferred;
+    String newBorrowerName;
     Map mapTransferred;
-
 }

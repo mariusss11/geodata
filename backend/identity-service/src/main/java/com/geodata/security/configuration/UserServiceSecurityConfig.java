@@ -41,7 +41,9 @@ public class UserServiceSecurityConfig {
                         .requestMatchers(HttpMethod.POST,"/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/auth/login").permitAll()
 
-                        // request for user to disable himself
+                        // self-service profile management
+                        .requestMatchers(HttpMethod.PUT,"/api/home/profile").hasAuthority(USER_ROLE)
+                        .requestMatchers(HttpMethod.PUT,"/api/home/password").hasAuthority(USER_ROLE)
                         .requestMatchers(HttpMethod.PUT,"/api/home/disable").hasAuthority(USER_ROLE)
 
 //                        // requests for the admin

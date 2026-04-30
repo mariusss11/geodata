@@ -1,9 +1,13 @@
 package com.geodata.config;
 
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
 
 import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
 
@@ -13,6 +17,15 @@ public class AppConfig {
 
     @Bean
     public RestTemplate restTemplateBean() {
-        return new RestTemplate();
+        RestTemplate restTemplate = new RestTemplate();
+        ClientHttpRequestInterceptor mdcInterceptor = (request, body, execution) -> {
+            String requestId = MDC.get("requestId");
+            if (requestId != null) {
+                request.getHeaders().set("X-Request-ID", requestId);
+            }
+            return execution.execute(request, body);
+        };
+        restTemplate.setInterceptors(List.of(mdcInterceptor));
+        return restTemplate;
     }
 }

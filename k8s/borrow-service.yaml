@@ -1,3 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: borrow-service-config
+data:
+  SUPABASE_JDBC_URL: "jdbc:postgresql://postgres:5432/postgres?currentSchema=borrow"
+  SUPABASE_DATABASE_USER: "postgres"
+  SUPABASE_DATABASE_PASSWORD: "admin"
+  ALLOWED-ORIGINS: "http://a312ebdfe078b4941b8ca485894409f4-891584174.eu-central-1.elb.amazonaws.com"
+  IDENTITY_SERVICE: "identity-service:8010"
+  MAP_SERVICE: "map-service:8020"
+  SPRING_PROFILES_ACTIVE: "prod"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: borrow-service-secrets
+type: Opaque
+stringData:
+  JWT_SECRET: "change-me-in-prod-use-min-32-chars-string"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,37 +34,76 @@ spec:
         app: borrow-service
     spec:
       containers:
-      - name: borrow-service
-        image: ghcr.io/mariusss11/borrow-service:latest
-        ports:
-        - containerPort: 8030
-        env:
-        - name: SPRING_DATASOURCE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: borrow-service-config
-              key: SPRING_DATASOURCE_URL
-        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-          valueFrom:
-            configMapKeyRef:
-              name: borrow-service-config
-              key: SPRING_KAFKA_BOOTSTRAP_SERVERS
-        - name: SERVER_PORT
-          valueFrom:  
-            configMapKeyRef:
-              name: borrow-service-config
-              key: SERVER_PORT
-        - name: SERVICES_CLIENTSERVICE
-          valueFrom:
-            configMapKeyRef:
-              name: borrow-service-config
-              key: SERVICES_CLIENTSERVICE
-        - name: SERVICES_ITEMSERVICE
-          valueFrom:
-            configMapKeyRef:
-              name: borrow-service-config
-              key: SERVICES_ITEMSERVICE 
-        
+        - name: borrow-service
+          image: ghcr.io/mariusss11/borrow-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8030
+              name: http
+          env:
+            - name: SUPABASE_JDBC_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: borrow-service-config
+                  key: SUPABASE_JDBC_URL
+            - name: SUPABASE_DATABASE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: borrow-service-config
+                  key: SUPABASE_DATABASE_USER
+            - name: SUPABASE_DATABASE_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: borrow-service-config
+                  key: SUPABASE_DATABASE_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: borrow-service-secrets
+                  key: JWT_SECRET
+            - name: ALLOWED-ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: borrow-service-config
+                  key: ALLOWED-ORIGINS
+            - name: IDENTITY_SERVICE
+              valueFrom:
+                configMapKeyRef:
+                  name: borrow-service-config
+                  key: IDENTITY_SERVICE
+            - name: MAP_SERVICE
+              valueFrom:
+                configMapKeyRef:
+                  name: borrow-service-config
+                  key: MAP_SERVICE
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: borrow-service-config
+                  key: SPRING_PROFILES_ACTIVE
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8030
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8030
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service
@@ -53,37 +113,8 @@ spec:
   selector:
     app: borrow-service
   ports:
-  - protocol: TCP
-    port: 8030
-    targetPort: 8030
+    - protocol: TCP
+      port: 8030
+      targetPort: 8030
+      name: http
   type: ClusterIP
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: borrow-service-config
-data:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres?currentSchema=borrow
-  SPRING_DATASOURCE_USERNAME: postgres
-  SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-service:9092
-  SPRING_FLYWAY_LOCATIONS: classpath:db/migration
-  SPRING_FLYWAY_SCHEMAS: borrow
-  SERVER_PORT: "8030"
-  SERVICES_BORROWSERVICE: borrow-service.default.svc.cluster.local
-  SERVICES_AUTHSERVICE: auth-service.default.svc.cluster.local
-  SERVICES_ITEMSERVICE: item-service.default.svc.cluster.local
-  # ALLOWED_ORIGINS: "*"
-  ALLOWED_ORIGINS: "http://a312ebdfe078b4941b8ca485894409f4-891584174.eu-central-1.elb.amazonaws.com"
-  BORROW_SERVICE: borrow-service
-  AUTH_SERVICE: identity-service
-  ITEM_SERVICE: item-service
-
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: borrow-service-secret
-type: Opaque
-stringData:
-  SPRING_DATASOURCE_PASSWORD: admin

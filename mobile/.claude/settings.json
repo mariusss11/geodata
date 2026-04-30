@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter devices *)",
+      "Bash(flutter doctor *)",
+      "Bash(rtk flutter *)",
+      "Bash(rtk find *)",
+      "Bash(rtk gain *)",
+      "Bash(rtk discover)",
+      "Bash(rtk --version)"
+    ]
+  }
+}

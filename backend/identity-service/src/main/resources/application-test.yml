@@ -1,0 +1,13 @@
+spring:
+  flyway:
+    locations: classpath:db/migration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+cors:
+  allowed-origins: "http://localhost:5173"
+
+secretsJwtString: "test-secret-key-that-is-at-least-32-characters-long"
+services:
+  borrowService: "localhost:8030"

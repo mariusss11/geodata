@@ -12,9 +12,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BorrowedMapDto {
-    private int borrowId;  // the borrow record id
+    private int borrowId;
     private int mapId;
-    private int userId;
+    private String borrowerName;
     private String name;
     private int year;
     private boolean isEnabled;

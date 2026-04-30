@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.*;
 import java.util.function.Function;
@@ -38,7 +38,7 @@ public class JwtUtils {
 
     @PostConstruct
     private void init() {
-        byte[] keyBytes = Base64.getDecoder().decode(secreteJwtString);
+        byte[] keyBytes = secreteJwtString.getBytes(StandardCharsets.UTF_8);
         this.key = new SecretKeySpec(keyBytes, "HmacSHA256");
     }
 

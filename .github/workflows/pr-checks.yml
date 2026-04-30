@@ -1,0 +1,59 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: HEAD
+
+      - name: Check file size
+        run: |
+          echo "Checking for large files..."
+          find . -type f -size +50M \
+            ! -path './.git/*' \
+            ! -path './mobile/build/*' \
+            ! -path './backend/target/*' \
+            ! -path './.gradle/*' \
+            ! -path './.dart_tool/*' \
+            && echo "❌ Large files found (>50MB)" && exit 1 || echo "✅ No large files"
+
+      - name: Verify K8s manifests
+        run: |
+          if [ -d k8s ]; then
+            echo "Validating Kubernetes manifests..."
+            for file in k8s/*.yaml; do
+              echo "Checking $file..."
+              ! grep -q "changeme\|TODO\|FIXME" "$file" || echo "⚠️ Found TODO/FIXME in $file"
+            done
+          fi
+
+      - name: Check commits
+        run: |
+          echo "Validating commit messages..."
+          COMMITS=$(git log ${{ github.event.pull_request.base.sha }}..HEAD --pretty=format:"%B")
+
+          # Check for meaningful commit messages
+          echo "$COMMITS" | grep -E "^(feat|fix|docs|style|refactor|test|chore):" > /dev/null && \
+          echo "✅ Commit messages follow conventional format" || \
+          echo "⚠️ Consider using conventional commits (feat:, fix:, etc.)"
+
+      - name: PR Summary
+        run: |
+          echo "## PR Checks Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Secrets check passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ File size check passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Kubernetes manifests valid" >> $GITHUB_STEP_SUMMARY

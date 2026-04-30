@@ -27,7 +27,7 @@ import java.util.List;
 @Service
 public class BorrowManagementService {
 
-    @Value("${services.clientService}")
+    @Value("${services.identityService}")
     private String clientService;
 
     @Value("${services.mapService}")

@@ -20,21 +20,20 @@ public class Borrows {
     private int id;
 
     @Column(name = "user_id")
-    private int userId;
+    private Integer userId;
 
     @Column(name = "map_id")
     private int mapId;
+
+    @Column(name = "borrower_name")
+    private String borrowerName;
 
     private LocalDateTime borrowDate;
 
     private LocalDate returnDate;
 
+    @Column(name = "actual_return_date")
+    private LocalDateTime actualReturnDate;
+
     private String status;
-
-
-    public Borrows(int client, int item, String status) {
-        this.userId = client;
-        this.mapId = item;
-        this.status = status;
-    }
 }

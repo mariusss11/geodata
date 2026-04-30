@@ -1,7 +1,6 @@
 spring:
   application:
     name: borrow-service
-
   datasource:
     url: "${SUPABASE_JDBC_URL}"
     username: "${SUPABASE_DATABASE_USER}"
@@ -12,7 +11,6 @@ spring:
       idle-timeout: 20000
       max-lifetime: 300000
       connection-timeout: 30000
-
   jpa:
     open-in-view: false
     hibernate:
@@ -20,18 +18,25 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
-secretsJwtString: "${JWT_SECRET}"
-
-services:
-  clientService: "${CLIENT_SERVICE:localhost:8010}"
-  mapService: "${MAP_SERVICE:localhost:8020}"
-
-cors:
-  allowed-origins: "${ALLOWED_ORIGINS:http://localhost:80,http://localhost:81,http://localhost:5173}"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
 
 server:
   port: 8030
+
+secretsJwtString: "${JWT_SECRET}"
+cors:
+  allowed-origins: "${ALLOWED-ORIGINS}"
+
+services:
+  identityService: "${IDENTITY_SERVICE:localhost:8010}"
+  mapService: "${MAP_SERVICE:localhost:8020}"
