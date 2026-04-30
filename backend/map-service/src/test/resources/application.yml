@@ -1,0 +1,7 @@
+cors:
+  allowed-origins: "http://localhost:3000"
+
+secretsJwtString: "test-jwt-secret-that-is-at-least-256-bits-long-for-hmac-sha256-algorithm"
+
+services:
+  borrowService: "localhost:8030"

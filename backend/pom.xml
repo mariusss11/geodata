@@ -1,26 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.example</groupId>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.1</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.geodata</groupId>
   <artifactId>geodata-parent</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
+    <java.version>21</java.version>
+    <jjwt.version>0.12.6</jjwt.version>
+    <springdoc.version>2.8.5</springdoc.version>
+    <logstash-logback.version>7.4</logstash-logback.version>
     <sonar.organization>mariusss11</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-api</artifactId>
+        <version>${jjwt.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-impl</artifactId>
+        <version>${jjwt.version}</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-jackson</artifactId>
+        <version>${jjwt.version}</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>${springdoc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.logstash.logback</groupId>
+        <artifactId>logstash-logback-encoder</artifactId>
+        <version>${logstash-logback.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <modules>
     <module>identity-service</module>
     <module>map-service</module>
     <module>borrow-service</module>
-    <module>review-service</module>
   </modules>
 
   <build>
@@ -43,12 +85,31 @@
               <goal>report-aggregate</goal>
             </goals>
           </execution>
+          <execution>
+            <id>check-aggregate</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <dataFile>${project.build.directory}/jacoco.exec</dataFile>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.70</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
-
     </plugins>
   </build>
 
-
 </project>
-
