@@ -27,6 +27,8 @@ spring:
     schemas: auth
     default-schema: auth
     create-schemas: true
+    baseline-on-migrate: true
+    baseline-version: 1
 
 management:
   endpoints:

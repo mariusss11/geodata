@@ -24,6 +24,8 @@ spring:
     schemas: map
     default-schema: map
     create-schemas: true
+    baseline-on-migrate: true
+    baseline-version: 1
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
