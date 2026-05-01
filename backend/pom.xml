@@ -25,6 +25,11 @@
     <sonar.organization>mariusss11</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    <!-- sonar-maven-plugin 4.x no longer auto-detects these reliably when -->
+    <!-- sonar:sonar runs as a separate Maven invocation from `verify`. -->
+    <!-- Paths resolve per-module against each child's basedir. -->
+    <sonar.java.binaries>target/classes</sonar.java.binaries>
+    <sonar.java.test.binaries>target/test-classes</sonar.java.test.binaries>
   </properties>
 
   <dependencyManagement>
