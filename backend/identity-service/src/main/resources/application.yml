@@ -18,14 +18,14 @@ spring:
   jpa:
     properties:
       hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
-      hibernate.default_schema: auth
+      hibernate.default_schema: identity
     hibernate:
       ddl-auto: validate
   flyway:
     enabled: true
     locations: classpath:db/migration
-    schemas: auth
-    default-schema: auth
+    schemas: identity
+    default-schema: identity
     create-schemas: true
     baseline-on-migrate: true
     baseline-version: 1
