@@ -1,0 +1,27 @@
+# fly.toml for map-service
+app = "geodata-map-service"
+primary_region = "iad"
+
+[build]
+dockerfile = "map-service/Dockerfile"
+builtin = "docker"
+
+[env]
+SPRING_PROFILES_ACTIVE = "prod"
+
+[[services]]
+internal_port = 8020
+processes = ["app"]
+
+  [services.http_checks]
+  enabled = true
+  grace_period = "60s"
+  interval = 10000
+  method = "GET"
+  min_response_time = "100ms"
+  path = "/actuator/health"
+  timeout = 5000
+
+[deploy]
+release_command = "java -jar map-service/target/mapService.jar --spring.flyway.enabled=true"
+strategy = "rolling"

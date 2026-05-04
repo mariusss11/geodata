@@ -1,0 +1,31 @@
+# fly.toml for identity-service
+app = "geodata-identity-service"
+primary_region = "iad"
+
+[build]
+dockerfile = "identity-service/Dockerfile"
+builtin = "docker"
+
+[env]
+SPRING_PROFILES_ACTIVE = "prod"
+
+[[services]]
+internal_port = 8010
+processes = ["app"]
+
+  [services.http_checks]
+  enabled = true
+  grace_period = "60s"
+  interval = 10000
+  method = "GET"
+  min_response_time = "100ms"
+  path = "/actuator/health"
+  timeout = 5000
+
+[deploy]
+release_command = "java -jar identity-service/target/identityService.jar --spring.flyway.enabled=true"
+strategy = "rolling"
+
+[[statics]]
+guest_path = "/public"
+url_prefix = "/public"

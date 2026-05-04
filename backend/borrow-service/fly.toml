@@ -1,0 +1,27 @@
+# fly.toml for borrow-service
+app = "geodata-borrow-service"
+primary_region = "iad"
+
+[build]
+dockerfile = "borrow-service/Dockerfile"
+builtin = "docker"
+
+[env]
+SPRING_PROFILES_ACTIVE = "prod"
+
+[[services]]
+internal_port = 8030
+processes = ["app"]
+
+  [services.http_checks]
+  enabled = true
+  grace_period = "60s"
+  interval = 10000
+  method = "GET"
+  min_response_time = "100ms"
+  path = "/actuator/health"
+  timeout = 5000
+
+[deploy]
+release_command = "java -jar borrow-service/target/borrowService.jar --spring.flyway.enabled=true"
+strategy = "rolling"
